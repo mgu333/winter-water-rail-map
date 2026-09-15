@@ -9,7 +9,7 @@ for a in D['activities']:
 overrides={a['id']:a for a in json.loads(ROOT.joinpath('activity-picks.json').read_text())}
 for a in D['activities']:
     a.update(overrides[a['id']])
-assert len({a['kind'] for a in D['activities']}) == 30
+assert len({a['kind'] for a in D['activities']}) == 100
 def get(url):
     for attempt in range(3):
         try:
@@ -39,6 +39,7 @@ def route(a,b,mode):
     trip=raw['trip'];r={'miles':trip['summary']['length'],'minutes':trip['summary']['time']/60,'coords':decode(trip['legs'][0]['shape']),'steps':[m['instruction'] for m in trip['legs'][0]['maneuvers']]}; C[key]=r;return r
 jobs=[]
 for a in D['activities']:
+    if a.get('unlocated'):continue
     a['travel']={}
     for mode in ['walk','bike','drive']:jobs.append((a,mode,home,[a['lat'],a['lon']]))
 regional=[]
@@ -51,6 +52,11 @@ with ThreadPoolExecutor(max_workers=2) as pool:
         try:obj['travel'][mode]=f.result()
         except Exception as e:obj['travel'][mode]={'error':str(e)}
         cache.write_text(json.dumps(C));print(n,'/',len(jobs),obj['name'],mode,flush=True)
+if D.get('rail'):
+    D['regional']=regional
+    ROOT.joinpath('map-data.json').write_text(json.dumps(D,separators=(',',':')))
+    print('DONE: preserved previously verified railway, refreshed activity routes',flush=True)
+    raise SystemExit(0)
 base='https://services.arcgis.com/xOi1kZaI0eWDREZv/arcgis/rest/services/NTAD_Amtrak_Routes/FeatureServer/0/query?'
 raw=get(base+urllib.parse.urlencode({'where':"name = 'California Zephyr'",'outFields':'*','outSR':4326,'f':'geojson'}))
 lines=[]
