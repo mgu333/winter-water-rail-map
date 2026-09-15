@@ -6,6 +6,10 @@ old=ROOT.joinpath('index.html').read_text()
 D=json.loads(old.split('const DATA=',1)[1].split(';\nconst svg=',1)[0]) if 'const DATA=' in old else json.loads(ROOT.joinpath('map-data.json').read_text())
 for a in D['activities']:
     if a['id']==12:a.update(lat=36.6107663,lon=-121.8971465,place='Backscatter · 225 Cannery Row')
+overrides={a['id']:a for a in json.loads(ROOT.joinpath('activity-picks.json').read_text())}
+for a in D['activities']:
+    a.update(overrides[a['id']])
+assert len({a['kind'] for a in D['activities']}) == 30
 def get(url):
     for attempt in range(3):
         try:
